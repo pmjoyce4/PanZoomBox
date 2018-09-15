@@ -82,8 +82,15 @@ namespace PanZoomBox
             int MouseX = (int)Math.Round((e.X / zoomFactor) + viewPort.X);
             int MouseY = (int)Math.Round((e.Y / zoomFactor) + viewPort.Y);
 
-            double zoomChange = (zoomFactor >= 10) ? 1 : (zoomFactor >= 1) ? .25 : .1;
-
+            double zoomChange; //= (zoomFactor >= 10) ? 1 : (zoomFactor >= 1) ? .25 : .1;
+            if (zoomFactor < 1)
+            {
+                zoomChange = .1;
+            }
+            else
+            {
+                zoomChange = zoomFactor / 10;
+            }
 
             if (e.Delta > 0)
             {
