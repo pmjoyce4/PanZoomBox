@@ -54,30 +54,28 @@ namespace PanZoomBox
         
         protected override void OnPaint(PaintEventArgs e)
         {
-            base.OnPaint(e);
-
             if (baseImage != null)
             {
                 this.CalculateViewport();
                 this.DrawImage(e.Graphics);
             }
-            
-            
+
+            base.OnPaint(e);
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
         {
-            base.OnMouseDown(e);
             if (e.Button == MouseButtons.Right)
             {
                 panStartPoint.X = e.X;
                 panStartPoint.Y = e.Y;
             }
+
+            base.OnMouseDown(e);
         }
 
         protected override void OnMouseWheel(MouseEventArgs e)
         {
-            base.OnMouseWheel(e);
 
             int MouseX = (int)Math.Round((e.X / zoomFactor) + viewPort.X);
             int MouseY = (int)Math.Round((e.Y / zoomFactor) + viewPort.Y);
@@ -119,13 +117,12 @@ namespace PanZoomBox
             viewPort.Y  += (int)Math.Round(MouseY - ((e.Y / zoomFactor) + viewPort.Y));
 
             this.Invalidate();
+            
+            base.OnMouseWheel(e);
         }
 
         protected override void OnMouseMove(MouseEventArgs e)
-        {
-            base.OnMouseMove(e);
-            
-
+        {   
             if (e.Button == MouseButtons.Right)
             {
                 int deltaX = (int)Math.Round((panStartPoint.X - e.X) / zoomFactor);
@@ -143,6 +140,8 @@ namespace PanZoomBox
                 }
                 this.Invalidate();
             }
+
+            base.OnMouseMove(e);
         }
 
         private void CalculateViewport()
@@ -163,8 +162,6 @@ namespace PanZoomBox
 
         private void DrawImage(Graphics g)
         {
-
-
             if (baseImage != null)
             {
                 g.Clear(this.BackColor);
