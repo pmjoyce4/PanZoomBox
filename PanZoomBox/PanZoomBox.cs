@@ -6,7 +6,6 @@ namespace PanZoomBox
 {
     public partial class PanZoomBox: UserControl
     {
-
         private Image baseImage;
         private Rectangle viewPort;
         private Point panStartPoint = new Point();
@@ -54,15 +53,14 @@ namespace PanZoomBox
         
         protected override void OnPaint(PaintEventArgs e)
         {
-            base.OnPaint(e);
-
             if (baseImage != null)
             {
                 this.CalculateViewport();
                 this.DrawImage(e.Graphics);
             }
-            
-            
+
+            base.OnPaint(e);
+
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
@@ -82,13 +80,19 @@ namespace PanZoomBox
             int MouseX = (int)Math.Round((e.X / zoomFactor) + viewPort.X);
             int MouseY = (int)Math.Round((e.Y / zoomFactor) + viewPort.Y);
 
-            double zoomChange = (zoomFactor >= 10) ? 1 : (zoomFactor >= 1) ? .25 : .1;
-
+            double zoomChange; //(zoomFactor >= 10) ? 1 : (zoomFactor >= 1) ? .25 : .1;
+            if (zoomFactor < 1)
+            {
+                zoomChange = .1;
+            }
+            else
+            {
+                zoomChange = zoomFactor / 10;
+            }
 
             if (e.Delta > 0)
             {
                 zoomFactor = Math.Round(zoomFactor + zoomChange, 1);
-                
             }
             else
             {
@@ -156,8 +160,6 @@ namespace PanZoomBox
 
         private void DrawImage(Graphics g)
         {
-
-
             if (baseImage != null)
             {
                 g.Clear(this.BackColor);
