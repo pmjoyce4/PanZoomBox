@@ -6,9 +6,13 @@ namespace PanZoomBox
 {
     public partial class PanZoomBox: UserControl
     {
+
         private Image baseImage;
         private Rectangle viewPort;
+        public int Quality = 0;
         private Point panStartPoint = new Point();
+        private Timer MoveQualityTimer;
+        private Timer ZoomQualityTimer;
         private double zoomFactor = 1;
         private int viewPortMaxX;
         private int viewPortMaxY;
@@ -18,6 +22,12 @@ namespace PanZoomBox
         public PanZoomBox()
         {
             InitializeComponent();
+            MoveQualityTimer = new Timer();
+            MoveQualityTimer.Interval = 200;
+            ZoomQualityTimer = new Timer();
+            ZoomQualityTimer.Interval = 1000;
+            MoveQualityTimer.Tick += new EventHandler(MoveQualityTimerTick);
+            ZoomQualityTimer.Tick += new EventHandler(ZoomQualityTimerTick);
             this.DoubleBuffered = true;
         }
 
@@ -50,37 +60,55 @@ namespace PanZoomBox
                 return this.zoomFactor;
             }
         }
+
+        private void MoveQualityTimerTick(object sender, EventArgs e)
+        {
+            MoveQualityTimer.Stop();
+            Quality = 2;
+            this.Invalidate();
+        }
+
+        private void ZoomQualityTimerTick(object sender, EventArgs e)
+        {
+            ZoomQualityTimer.Stop();
+            Quality = 2;
+            this.Invalidate();
+        }
         
         protected override void OnPaint(PaintEventArgs e)
         {
             if (baseImage != null)
             {
                 this.CalculateViewport();
-                this.DrawImage(e.Graphics);
+                this.DrawImage(e.Graphics, Quality);
             }
 
             base.OnPaint(e);
-
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
         {
-            base.OnMouseDown(e);
             if (e.Button == MouseButtons.Right)
             {
                 panStartPoint.X = e.X;
                 panStartPoint.Y = e.Y;
             }
+
+            base.OnMouseDown(e);
         }
 
         protected override void OnMouseWheel(MouseEventArgs e)
         {
-            base.OnMouseWheel(e);
+            if (Quality > 0)
+            {
+                Quality -= 1;
+            }
+            ZoomQualityTimer.Stop();
 
             int MouseX = (int)Math.Round((e.X / zoomFactor) + viewPort.X);
             int MouseY = (int)Math.Round((e.Y / zoomFactor) + viewPort.Y);
 
-            double zoomChange; //(zoomFactor >= 10) ? 1 : (zoomFactor >= 1) ? .25 : .1;
+            double zoomChange; //= (zoomFactor >= 10) ? 1 : (zoomFactor >= 1) ? .25 : .1;
             if (zoomFactor < 1)
             {
                 zoomChange = .1;
@@ -93,6 +121,7 @@ namespace PanZoomBox
             if (e.Delta > 0)
             {
                 zoomFactor = Math.Round(zoomFactor + zoomChange, 1);
+                
             }
             else
             {
@@ -116,15 +145,20 @@ namespace PanZoomBox
             viewPort.Y  += (int)Math.Round(MouseY - ((e.Y / zoomFactor) + viewPort.Y));
 
             this.Invalidate();
+            
+            base.OnMouseWheel(e);
+            ZoomQualityTimer.Start();
         }
 
         protected override void OnMouseMove(MouseEventArgs e)
-        {
-            base.OnMouseMove(e);
-            
-
+        {   
             if (e.Button == MouseButtons.Right)
             {
+                if (Quality > 0)
+                {
+                    Quality -= 1;
+                }
+                MoveQualityTimer.Stop();
                 int deltaX = (int)Math.Round((panStartPoint.X - e.X) / zoomFactor);
                 int deltaY = (int)Math.Round((panStartPoint.Y - e.Y) / zoomFactor);
 
@@ -140,6 +174,9 @@ namespace PanZoomBox
                 }
                 this.Invalidate();
             }
+
+            base.OnMouseMove(e);
+            MoveQualityTimer.Start();
         }
 
         private void CalculateViewport()
@@ -158,12 +195,27 @@ namespace PanZoomBox
             
         }
 
-        private void DrawImage(Graphics g)
+        private void DrawImage(Graphics g, int QualityLevel)
         {
             if (baseImage != null)
             {
                 g.Clear(this.BackColor);
                 Rectangle sourceRectangle = new Rectangle(viewPort.X, viewPort.Y, viewPort.Width, viewPort.Height);
+                if (QualityLevel <= 0)
+                {
+                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+                    g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighSpeed;
+                }
+                if (QualityLevel == 1)
+                {
+                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.High;
+                    g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighSpeed;
+                }
+                if (QualityLevel == 2)
+                {
+                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                    g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                }
                 g.DrawImage(baseImage, ClientRectangle, sourceRectangle, GraphicsUnit.Pixel);
             }
         }
