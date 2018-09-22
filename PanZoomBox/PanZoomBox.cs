@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -13,18 +14,23 @@ namespace PanZoomBox
         private Point panStartPoint = new Point();
         private Timer MoveQualityTimer;
         private Timer ZoomQualityTimer;
+        private List<Timer> QualityTimers = new List<Timer>();
         private double zoomFactor = 1;
         private int viewPortMaxX;
         private int viewPortMaxY;
         private int viewPortMinX;
         private int viewPortMinY;
+        private bool MaxZoom;
+        private bool MinZoom;
 
         public PanZoomBox()
         {
             InitializeComponent();
             MoveQualityTimer = new Timer();
+            QualityTimers.Add(MoveQualityTimer);
             MoveQualityTimer.Interval = 200;
             ZoomQualityTimer = new Timer();
+            QualityTimers.Add(ZoomQualityTimer);
             ZoomQualityTimer.Interval = 1000;
             MoveQualityTimer.Tick += new EventHandler(MoveQualityTimerTick);
             ZoomQualityTimer.Tick += new EventHandler(ZoomQualityTimerTick);
@@ -58,6 +64,14 @@ namespace PanZoomBox
             get
             {
                 return this.zoomFactor;
+            }
+        }
+
+        private void StopAllQualityTimers()
+        {
+            foreach (Timer CurrentTimer in QualityTimers)
+            {
+                CurrentTimer.Stop();
             }
         }
 
@@ -103,7 +117,8 @@ namespace PanZoomBox
             {
                 Quality -= 1;
             }
-            ZoomQualityTimer.Stop();
+
+            StopAllQualityTimers();
 
             int MouseX = (int)Math.Round((e.X / zoomFactor) + viewPort.X);
             int MouseY = (int)Math.Round((e.Y / zoomFactor) + viewPort.Y);
@@ -130,14 +145,24 @@ namespace PanZoomBox
             if (zoomFactor < .1)
             {
                 zoomFactor = .1;
+                Quality = 2;
+                if (!MinZoom)
+                    this.Invalidate();
+                MinZoom = true;
                 return;
             }
 
             if (zoomFactor > 100)
             {
                 zoomFactor = 100;
+                Quality = 2;
+                if (!MaxZoom)
+                    this.Invalidate();
+                MaxZoom = true;
                 return;
             }
+            MinZoom = false;
+            MaxZoom = false;
 
             // Calculate displacement after zooming
 
@@ -158,25 +183,32 @@ namespace PanZoomBox
                 {
                     Quality -= 1;
                 }
-                MoveQualityTimer.Stop();
+                
                 int deltaX = (int)Math.Round((panStartPoint.X - e.X) / zoomFactor);
                 int deltaY = (int)Math.Round((panStartPoint.Y - e.Y) / zoomFactor);
 
                 // Update viewport location
-                
-                if (viewPort.X != (viewPort.X += deltaX))
+                if (deltaX != 0 || deltaY != 0)
                 {
-                    panStartPoint.X = e.X;
+                    if (viewPort.X != (viewPort.X += deltaX))
+                    {
+                        panStartPoint.X = e.X;
+                    }
+                    if (viewPort.Y != (viewPort.Y += deltaY))
+                    {
+                        panStartPoint.Y = e.Y;
+                    }
+                    this.Invalidate();
+                    StopAllQualityTimers();
+                    MoveQualityTimer.Start();
                 }
-                if (viewPort.Y != (viewPort.Y += deltaY))
+                else
                 {
-                    panStartPoint.Y = e.Y;
+                    Quality += 1;
                 }
-                this.Invalidate();
             }
 
             base.OnMouseMove(e);
-            MoveQualityTimer.Start();
         }
 
         private void CalculateViewport()
